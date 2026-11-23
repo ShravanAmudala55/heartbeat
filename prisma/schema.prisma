@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Service {
+  id              String     @id @default(uuid())
+  name            String     @unique
+  url             String
+  intervalSeconds Int        @default(60)
+  active          Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  checks          Check[]
+  incidents       Incident[]
+}
+
+model Check {
+  id             String   @id @default(uuid())
+  serviceId      String
+  service        Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  ok             Boolean
+  statusCode     Int?
+  responseTimeMs Int
+  error          String?
+  checkedAt      DateTime @default(now())
+
+  @@index([serviceId, checkedAt])
+}
+
+model Incident {
+  id         String    @id @default(uuid())
+  serviceId  String
+  service    Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  title      String
+  notes      String?
+  auto       Boolean   @default(false)
+  startedAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([serviceId, resolvedAt])
+}
