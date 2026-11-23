@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.svg" alt="Heartbeat logo" width="200"></p>
+
 # Heartbeat
 
 A small service-health monitor. Register URLs, and it pings them on a schedule,
