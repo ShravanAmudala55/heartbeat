@@ -30,11 +30,13 @@ POST /services ──> Service (Postgres)
 ## Run it
 
 ```bash
-docker compose up -d          # Postgres
+docker compose up -d          # Postgres (or point DATABASE_URL at any Postgres)
+cp .env.example .env
 npm install
-npx prisma migrate dev --name init
-npm run dev                   # http://localhost:3000
+npx prisma migrate deploy     # applies the committed migration
+npm run dev                   # http://localhost:3000  (status page at /)
 npm test
+npm run typecheck
 ```
 
 ## API
@@ -49,6 +51,7 @@ npm test
 | GET | `/incidents?open=true` | List incidents |
 | PATCH | `/incidents/:id/resolve` | Resolve an incident |
 | GET | `/status` | Per-service status, 24h uptime %, open incidents |
+| GET | `/` | Retro status page (auto-refreshing) |
 | GET | `/health` | Liveness |
 
 ## Design notes
@@ -60,4 +63,4 @@ npm test
 
 ## Ideas to extend
 
-Status page front end, webhook/Slack alerts on incident open, retention job for old checks, deploy to Railway/Render/Fly.
+Webhook/Slack alerts on incident open, retention job for old checks, deploy to Railway/Render/Fly.

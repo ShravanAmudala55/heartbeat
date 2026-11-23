@@ -30,6 +30,13 @@ describe("API", () => {
     expect(res.statusCode).toBe(200);
   });
 
+  it("serves the status page at /", async () => {
+    const res = await app.inject({ url: "/" });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/html");
+    expect(res.body).toContain("heartbeat");
+  });
+
   it("creates and lists services", async () => {
     const created = await app.inject({
       method: "POST",
