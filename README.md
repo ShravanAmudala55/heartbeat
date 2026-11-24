@@ -11,6 +11,8 @@
 
 # Heartbeat
 
+**Live status page: https://heartbeat-wamx.onrender.com**
+
 A small service-health monitor. Register URLs, and it pings them on a schedule,
 stores every result, tracks uptime, and opens/resolves incidents automatically.
 
