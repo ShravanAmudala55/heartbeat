@@ -3,7 +3,9 @@ import { createDb } from "./db.js";
 import { startScheduler } from "./checker.js";
 
 const db = createDb();
-const app = await buildApp(db, { logger: true });
+const apiKey = process.env.API_KEY;
+const app = await buildApp(db, { logger: true, apiKey });
+if (!apiKey) app.log.warn("API_KEY is not set: all write endpoints will return 503");
 const stopScheduler = startScheduler(db, 10_000, (m) => app.log.error(m));
 
 const shutdown = async () => {

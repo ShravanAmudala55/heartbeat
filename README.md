@@ -41,6 +41,8 @@ npm run typecheck
 
 ## API
 
+Reads are public. **Writes (POST, PATCH, DELETE) need an `x-api-key` header** matching the `API_KEY` env var; without it the server answers 401, and 503 if no key is configured.
+
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/services` | Register `{ name, url, intervalSeconds? }` |
@@ -53,6 +55,27 @@ npm run typecheck
 | GET | `/status` | Per-service status, 24h uptime %, open incidents |
 | GET | `/` | Retro status page (auto-refreshing) |
 | GET | `/health` | Liveness |
+
+```bash
+curl -X POST https://<your-host>/services \
+  -H "x-api-key: $API_KEY" -H "content-type: application/json" \
+  -d '{"name":"Portfolio","url":"https://example.com","intervalSeconds":300}'
+```
+
+## Deploy (Render + Neon, free)
+
+1. Create a Neon Postgres database and copy its connection string.
+2. `DATABASE_URL="<neon url>" npx prisma migrate deploy`
+3. Render web service from this repo. Build: `npm install && npx prisma generate && npm run build`. Start: `npm start`. Health check: `/health`.
+4. Environment variables: `DATABASE_URL`, `API_KEY` (long random string), `NODE_VERSION=22`.
+5. Point a free external pinger (UptimeRobot, cron-job.org) at `/health` every 5 minutes so the free instance does not sleep.
+
+## Security notes
+
+- Write endpoints require the API key (compared in constant time).
+- Monitored URLs must be http(s) and resolve to public addresses only: loopback, private ranges, link-local and cloud-metadata addresses are rejected when a service is added and again on every check.
+- Redirects are reported, not followed, so a public URL cannot bounce a check to an internal address.
+- Known limit: DNS is resolved once for the guard and again when connecting, so a hostile DNS server could in theory change its answer in between.
 
 ## Design notes
 

@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import type { Db } from "../db.js";
+import { BlockedUrlError, type UrlGuard } from "../netguard.js";
 
-export function serviceRoutes(app: FastifyInstance, db: Db) {
+export function serviceRoutes(app: FastifyInstance, db: Db, guard: UrlGuard) {
   app.post<{ Body: { name: string; url: string; intervalSeconds?: number } }>(
     "/services",
     {
@@ -19,6 +20,12 @@ export function serviceRoutes(app: FastifyInstance, db: Db) {
       },
     },
     async (req, reply) => {
+      try {
+        await guard(req.body.url);
+      } catch (err) {
+        if (err instanceof BlockedUrlError) throw app.httpErrors.badRequest(err.message);
+        throw err;
+      }
       try {
         const service = await db.service.create({ data: req.body });
         return reply.code(201).send(service);

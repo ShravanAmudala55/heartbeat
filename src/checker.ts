@@ -1,4 +1,5 @@
 import type { Db } from "./db.js";
+import { assertPublicUrl, type UrlGuard } from "./netguard.js";
 
 export const FAILURES_BEFORE_INCIDENT = 3;
 
@@ -11,17 +12,20 @@ export interface CheckResult {
 
 type FetchFn = typeof fetch;
 
-/** Ping a URL once. Any 2xx/3xx counts as up; errors and timeouts count as down. */
+/** Ping a URL once. Any 2xx/3xx counts as up (redirects are reported, not followed); errors and timeouts count as down. */
 export async function pingUrl(
   url: string,
   timeoutMs = 10_000,
   fetchFn: FetchFn = fetch,
+  guard: UrlGuard = assertPublicUrl,
 ): Promise<CheckResult> {
   const start = Date.now();
   try {
+    await guard(url);
     const res = await fetchFn(url, {
       method: "GET",
-      redirect: "follow",
+      // Never follow redirects: a public URL must not be able to bounce us to an internal one.
+      redirect: "manual",
       signal: AbortSignal.timeout(timeoutMs),
     });
     return {
@@ -79,7 +83,7 @@ export async function recordCheck(db: Db, serviceId: string, result: CheckResult
 }
 
 /** Check every active service that is due (never checked, or older than its interval). */
-export async function runDueChecks(db: Db, fetchFn: FetchFn = fetch) {
+export async function runDueChecks(db: Db, fetchFn: FetchFn = fetch, guard: UrlGuard = assertPublicUrl) {
   const services = await db.service.findMany({
     where: { active: true },
     include: { checks: { orderBy: { checkedAt: "desc" }, take: 1 } },
@@ -90,7 +94,7 @@ export async function runDueChecks(db: Db, fetchFn: FetchFn = fetch) {
     return last === undefined || now - last >= s.intervalSeconds * 1000;
   });
   await Promise.all(
-    due.map(async (s) => recordCheck(db, s.id, await pingUrl(s.url, 10_000, fetchFn))),
+    due.map(async (s) => recordCheck(db, s.id, await pingUrl(s.url, 10_000, fetchFn, guard))),
   );
   return due.length;
 }
